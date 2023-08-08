@@ -28,6 +28,14 @@ class CrimeDetailViewModel(crimeId: UUID) : ViewModel() {
         }
     }
 
+    suspend fun getCrime(id: UUID): Crime {
+        return crimeRepository.getCrime(id)
+    }
+
+    suspend fun deleteCrime(crime: Crime) {
+        crimeRepository.deleteCrime(crime)
+    }
+
     override fun onCleared() {
         super.onCleared()
 
