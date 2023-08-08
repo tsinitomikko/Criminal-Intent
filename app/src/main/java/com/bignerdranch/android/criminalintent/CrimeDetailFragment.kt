@@ -16,7 +16,9 @@ import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
 import com.bignerdranch.android.criminalintent.databinding.FragmentCrimeDetailBinding
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
 import java.util.Date
+import java.util.Locale
 
 class CrimeDetailFragment : Fragment() {
 
@@ -66,6 +68,19 @@ class CrimeDetailFragment : Fragment() {
         }
 
         setFragmentResultListener(
+            TimePickerFragment.REQUEST_KEY_TIME
+        ) { _, bundle ->
+            val newDate = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                bundle.getSerializable(TimePickerFragment.BUNDLE_KEY_TIME, Date::class.java) as Date
+            } else {
+                bundle.getSerializable(TimePickerFragment.BUNDLE_KEY_TIME) as Date
+            }
+            crimeDetailViewModel.updateCrime {
+                it.copy(date = newDate)
+            }
+        }
+
+        setFragmentResultListener(
             DatePickerFragment.REQUEST_KEY_DATE
         ) { _, bundle ->
             val newDate = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -89,13 +104,24 @@ class CrimeDetailFragment : Fragment() {
             if (crimeTitle.text.toString() != crime.title) {
                 crimeTitle.setText(crime.title)
             }
-            crimeDate.text = crime.date.toString()
+            crimeDate.text = formatDate(crime.date, "EEE MMM dd, yyyy")
             crimeDate.setOnClickListener {
                 findNavController().navigate(
                     CrimeDetailFragmentDirections.selectDate(crime.date)
                 )
             }
+            crimeTime.text = formatDate(crime.date, "HH:mm zz")
+            crimeTime.setOnClickListener {
+                findNavController().navigate(
+                    CrimeDetailFragmentDirections.selectTime(crime.date)
+                )
+            }
             crimeSolved.isChecked = crime.isSolved
         }
+    }
+
+    private fun formatDate(date: Date, pattern: String): String {
+        val formatter = SimpleDateFormat(pattern, Locale.getDefault())
+        return formatter.format(date)
     }
 }
