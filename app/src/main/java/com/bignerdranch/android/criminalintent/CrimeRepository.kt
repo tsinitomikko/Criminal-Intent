@@ -16,7 +16,9 @@ class CrimeRepository private constructor(
 ) {
 
     private val database: CrimeDatabase = Room.databaseBuilder(
-        context.applicationContext, CrimeDatabase::class.java, DATABASE_NAME
+        context.applicationContext,
+        CrimeDatabase::class.java,
+        DATABASE_NAME
     ).build()
 
     fun getCrimes() = database.crimeDao().getCrimes()
@@ -30,9 +32,11 @@ class CrimeRepository private constructor(
     }
 
     suspend fun addCrime(crime: Crime) {
-        database.crimeDao().addCrime(
-            crime
-        )
+        database.crimeDao().addCrime(crime)
+    }
+
+    suspend fun deleteCrime(crime: Crime) {
+        database.crimeDao().deleteCrime(crime)
     }
 
     companion object {

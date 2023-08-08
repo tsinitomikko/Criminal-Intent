@@ -3,8 +3,12 @@ package com.bignerdranch.android.criminalintent
 import android.os.Build
 import android.os.Bundle
 import android.view.LayoutInflater
+import android.view.Menu
+import android.view.MenuInflater
+import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.core.widget.doOnTextChanged
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.setFragmentResultListener
@@ -17,6 +21,7 @@ import androidx.navigation.fragment.navArgs
 import com.bignerdranch.android.criminalintent.databinding.FragmentCrimeDetailBinding
 import kotlinx.coroutines.launch
 import java.util.Date
+import java.util.UUID
 
 class CrimeDetailFragment : Fragment() {
 
@@ -30,6 +35,11 @@ class CrimeDetailFragment : Fragment() {
 
     private val crimeDetailViewModel: CrimeDetailViewModel by viewModels {
         CrimeDetailViewModelFactory(args.crimeID)
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setHasOptionsMenu(true)
     }
 
     override fun onCreateView(
@@ -84,6 +94,23 @@ class CrimeDetailFragment : Fragment() {
         _binding = null
     }
 
+    override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
+        super.onCreateOptionsMenu(menu, inflater)
+        inflater.inflate(R.menu.fragment_crime_detail, menu)
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        return when (item.itemId) {
+            R.id.delete_crime -> {
+                deleteCrime(args.crimeID)
+                findNavController().popBackStack()
+                true
+            }
+
+            else -> super.onContextItemSelected(item)
+        }
+    }
+
     private fun updateUi(crime: Crime) {
         binding.apply {
             if (crimeTitle.text.toString() != crime.title) {
@@ -97,5 +124,13 @@ class CrimeDetailFragment : Fragment() {
             }
             crimeSolved.isChecked = crime.isSolved
         }
+    }
+
+    private fun deleteCrime(id: UUID) {
+        viewLifecycleOwner.lifecycleScope.launch {
+            val crime = crimeDetailViewModel.getCrime(id)
+            crimeDetailViewModel.deleteCrime(crime)
+        }
+        Toast.makeText(requireContext(), "Crime deleted.", Toast.LENGTH_SHORT).show()
     }
 }
