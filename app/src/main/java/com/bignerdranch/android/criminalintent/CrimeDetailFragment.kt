@@ -1,5 +1,7 @@
 package com.bignerdranch.android.criminalintent
 
+import android.annotation.SuppressLint
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.pm.ResolveInfo
@@ -8,10 +10,14 @@ import android.os.Build
 import android.os.Bundle
 import android.provider.ContactsContract
 import android.text.format.DateFormat
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.core.widget.doOnTextChanged
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.setFragmentResultListener
@@ -74,7 +80,18 @@ class CrimeDetailFragment : Fragment() {
             }
 
             crimeSuspect.setOnClickListener {
-                selectSuspect.launch(null)
+                if (isPermissionGranted()) {
+                    selectSuspect.launch(null)
+                } else {
+                    onClickRequestPermission()
+                }
+            }
+
+            crimeCallSuspect.isEnabled = isPermissionGranted()
+            crimeCallSuspect.setOnClickListener {
+                val intent = Intent(Intent.ACTION_DIAL)
+                intent.data = Uri.parse("tel:${crimeCallSuspect.text}")
+                startActivity(intent)
             }
 
             val selectSuspectIntent = selectSuspect.contract.createIntent(
@@ -146,6 +163,11 @@ class CrimeDetailFragment : Fragment() {
             crimeSuspect.text = crime.suspect.ifEmpty {
                 getString(R.string.crime_suspect_text)
             }
+
+            crimeCallSuspect.isEnabled = isPermissionGranted() && crime.phone.isNotEmpty()
+            crimeCallSuspect.text = crime.phone.ifEmpty {
+                getString(R.string.crime_call_suspect_text)
+            }
         }
     }
 
@@ -169,30 +191,113 @@ class CrimeDetailFragment : Fragment() {
         )
     }
 
+    @SuppressLint("Range")
     private fun parseContactSelection(contactUri: Uri) {
-        val queryFields = arrayOf(ContactsContract.Contacts.DISPLAY_NAME)
+        val queryFields = arrayOf(
+            ContactsContract.Contacts.DISPLAY_NAME,
+            ContactsContract.Contacts._ID
+        )
 
         val queryCursor =
-            requireActivity().contentResolver
-                .query(contactUri, queryFields, null, null, null)
+            requireActivity().contentResolver.query(
+                contactUri,
+                queryFields,
+                null,
+                null,
+                null
+            )
+
+        var contactID: String? = null
 
         queryCursor?.use { cursor ->
             if (cursor.moveToFirst()) {
-                val suspect = cursor.getString(0)
+                val suspect =
+                    cursor.getString(cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME))
                 crimeDetailViewModel.updateCrime { oldCrime ->
                     oldCrime.copy(suspect = suspect)
                 }
+                contactID = cursor.getString(cursor.getColumnIndex(ContactsContract.Contacts._ID))
+            }
+        }
+
+        if (contactID != null) {
+            val phone = getPhoneNumberById(requireActivity(), contactID!!)
+            crimeDetailViewModel.updateCrime { oldCrime ->
+                oldCrime.copy(phone = phone)
             }
         }
     }
 
+    @SuppressLint("Range")
+    fun getPhoneNumberById(context: Context, contactId: String): String {
+
+        val queryCursor = context.contentResolver.query(
+            ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
+            arrayOf(ContactsContract.CommonDataKinds.Phone.NUMBER),
+            ContactsContract.CommonDataKinds.Phone.CONTACT_ID + " = ?",
+            arrayOf(contactId),
+            null
+        )
+
+        queryCursor?.use { cursor ->
+            return if (cursor.moveToFirst()) {
+                cursor.getString(cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER))
+            } else {
+                ""
+            }
+        }
+        return ""
+    }
+
     private fun canResolveIntent(intent: Intent): Boolean {
         val packageManager: PackageManager = requireActivity().packageManager
-        val resolveActivity: ResolveInfo? =
-            packageManager.resolveActivity(
-                intent,
-                PackageManager.MATCH_DEFAULT_ONLY
-            )
+        val resolveActivity: ResolveInfo? = packageManager.resolveActivity(
+            intent, PackageManager.MATCH_DEFAULT_ONLY
+        )
         return resolveActivity != null
+    }
+
+    private val requestPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted: Boolean ->
+        if (isGranted) {
+            Log.i("Permission: ", "Granted")
+            binding.crimeCallSuspect.isEnabled = true
+            selectSuspect.launch(null)
+        } else {
+            Log.i("Permission: ", "Denied")
+            binding.crimeCallSuspect.isEnabled = false
+        }
+    }
+
+    private fun onClickRequestPermission() {
+        when {
+            ContextCompat.checkSelfPermission(
+                requireContext(), android.Manifest.permission.READ_CONTACTS
+            ) == PackageManager.PERMISSION_GRANTED -> {
+                Toast.makeText(requireContext(), "Permission Granted", Toast.LENGTH_SHORT).show()
+            }
+
+            ActivityCompat.shouldShowRequestPermissionRationale(
+                requireActivity(), android.Manifest.permission.READ_CONTACTS
+            ) -> {
+                Toast.makeText(requireContext(), "Permission Required", Toast.LENGTH_SHORT).show()
+                requestPermissionLauncher.launch(
+                    android.Manifest.permission.READ_CONTACTS
+                )
+            }
+
+            else -> {
+                requestPermissionLauncher.launch(
+                    android.Manifest.permission.READ_CONTACTS
+                )
+            }
+        }
+    }
+
+    private fun isPermissionGranted(): Boolean {
+        return ContextCompat.checkSelfPermission(
+            requireContext(), android.Manifest.permission.READ_CONTACTS
+        ) == PackageManager.PERMISSION_GRANTED
     }
 }
