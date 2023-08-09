@@ -1,5 +1,7 @@
 package com.bignerdranch.android.criminalintent
 
+import android.content.Context
+import android.text.format.DateFormat
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -9,8 +11,10 @@ import java.util.UUID
 
 class CrimeHolder(
     private val binding: ListItemCrimeBinding,
+    private val context: Context
 ) : RecyclerView.ViewHolder(binding.root) {
     fun bind(crime: Crime, onCrimeClicked: (crimeId: UUID) -> Unit) {
+        binding.root.contentDescription = getCrimeReportSummary(context, crime)
         binding.crimeTitle.text = crime.title
         binding.crimeDate.text = crime.date.toString()
 
@@ -23,6 +27,21 @@ class CrimeHolder(
         } else {
             View.GONE
         }
+    }
+
+    private fun getCrimeReportSummary(context: Context, crime: Crime): String {
+        val solvedString = if (crime.isSolved) {
+            context.getString(R.string.crime_report_solved)
+        } else {
+            context.getString(R.string.crime_report_unsolved)
+        }
+
+        val dateString = DateFormat.format("EEEE,  MMM, d yyyy", crime.date).toString()
+
+        return context.getString(
+            R.string.crime_report_summary,
+            crime.title, dateString, solvedString
+        )
     }
 }
 
@@ -37,7 +56,7 @@ class CrimeListAdapter(
     ): CrimeHolder {
         val inflater = LayoutInflater.from(parent.context)
         val binding = ListItemCrimeBinding.inflate(inflater, parent, false)
-        return CrimeHolder(binding)
+        return CrimeHolder(binding, parent.context)
     }
 
     override fun getItemCount(): Int = crimes.size

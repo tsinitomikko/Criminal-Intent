@@ -20,4 +20,8 @@
     <string name="crime_report_suspect">el/la sospechoso/a es %s.</string>
     <string name="crime_report_subject">IntentoCriminal Informe del Crimen</string>
     <string name="send_report">Enviar el informe del crimen a través de</string>
+    <string name="crime_report_summary">%1$s! El crimen fue descubierto el %2$s. %3$s</string>
+    <string name="date">Fecha</string>
+    <string name="suspect">Sospechoso/Sospechosa</string>
+    <string name="report">Informe</string>
 </resources>

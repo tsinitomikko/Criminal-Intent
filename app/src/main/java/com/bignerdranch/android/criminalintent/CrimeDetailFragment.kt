@@ -243,6 +243,7 @@ class CrimeDetailFragment : Fragment() {
             }
 
             if (photoFile?.exists() == true) {
+                binding.crimePhoto.announceForAccessibility("Photo Available")
                 binding.crimePhoto.doOnLayout { measuredView ->
                     val scaledBitmap = getScaledBitmap(
                         photoFile.path,
@@ -255,6 +256,7 @@ class CrimeDetailFragment : Fragment() {
                         getString(R.string.crime_photo_image_description)
                 }
             } else {
+                binding.crimePhoto.announceForAccessibility("No Photo Available")
                 binding.crimePhoto.setImageBitmap(null)
                 binding.crimePhoto.tag = null
                 binding.crimePhoto.contentDescription =
