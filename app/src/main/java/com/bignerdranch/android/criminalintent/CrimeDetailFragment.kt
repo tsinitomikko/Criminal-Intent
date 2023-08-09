@@ -3,6 +3,7 @@ package com.bignerdranch.android.criminalintent
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.pm.ResolveInfo
+import android.icu.text.SimpleDateFormat
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -28,8 +29,9 @@ import com.bignerdranch.android.criminalintent.databinding.FragmentCrimeDetailBi
 import kotlinx.coroutines.launch
 import java.io.File
 import java.util.Date
+import java.util.Locale
 
-private const val DATA_FORMAT = "EEE,  MMM, dd"
+private const val DATE_FORMAT = "EEE,  MMM, dd"
 
 class CrimeDetailFragment : Fragment() {
 
@@ -155,7 +157,7 @@ class CrimeDetailFragment : Fragment() {
             if (crimeTitle.text.toString() != crime.title) {
                 crimeTitle.setText(crime.title)
             }
-            crimeDate.text = crime.date.toString()
+            crimeDate.text = localizeDate(crime.date)
             crimeDate.setOnClickListener {
                 findNavController().navigate(
                     CrimeDetailFragmentDirections.selectDate(crime.date)
@@ -196,7 +198,7 @@ class CrimeDetailFragment : Fragment() {
             getString(R.string.crime_report_unsolved)
         }
 
-        val dateString = DateFormat.format(DATA_FORMAT, crime.date).toString()
+        val dateString = localizeDate(crime.date)
         val suspectText = if (crime.suspect.isBlank()) {
             getString(R.string.crime_report_no_suspect)
         } else {
@@ -257,5 +259,12 @@ class CrimeDetailFragment : Fragment() {
                 binding.crimePhoto.tag = null
             }
         }
+    }
+
+    private fun localizeDate(date: Date): String {
+        val locale = Locale.FRANCE
+        val df = DateFormat.getBestDateTimePattern(locale, DATE_FORMAT)
+        val sdf = SimpleDateFormat(df, locale)
+        return sdf.format(date)
     }
 }
