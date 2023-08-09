@@ -186,6 +186,12 @@ class CrimeDetailFragment : Fragment() {
             }
 
             updatePhoto(crime.photoFileName)
+            crimePhoto.setOnClickListener {
+                val zoomDialog = crime.photoFileName?.let {
+                    ZoomDialogFragment.newInstance(it)
+                }
+                zoomDialog?.show(childFragmentManager, null)
+            }
         }
     }
 
